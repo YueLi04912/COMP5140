@@ -70,6 +70,7 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        if (Cursor.lockState != CursorLockMode.Locked) return;
         // ── 鼠标：左右转身体，上下转相机 ──
         yaw += Input.GetAxis("Mouse X") * mouseSensitivity;
         pitch -= Input.GetAxis("Mouse Y") * mouseSensitivity;

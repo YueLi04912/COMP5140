@@ -3,69 +3,69 @@ using UnityEngine;
 [RequireComponent(typeof(Animator))]
 public class NPCIKController : MonoBehaviour
 {
+    [Tooltip("LLM 或代码指定的目标（比如玩家的头，或者某辆展车）")]
     public Transform Target; 
-    [Range(0, 1)] public float lookWeight = 1f; 
     
-    public float maxAngle = 45f; 
-    public float turnSmoothTime = 0.5f; 
+    [Range(0, 1)] 
+    public float lookWeight = 1f; // 追踪权重，后续可用于做平滑的“转头/回头”过渡
     
-    private float turnSmoothVelocity; 
-    public float turnDelay = 0.8f; 
-    private float playerIdleTimer = 0f; 
-    private Vector3 lastTargetPos; 
-    private bool isRotatingBody = false; 
+    [Tooltip("超过该角度（度）开始触发全身转身")]
+    public float maxAngle = 45f;
+    [Tooltip("转身直到与目标夹角小于该角度（度）才停止，防止在阈值边缘反复触发重播动画")]
+    public float stopAngle = 5f;
+    [Tooltip("身体每秒旋转角速度（度/秒）")]
+    public float turnSpeed = 75f;
+
+    [Tooltip("外部锁定转身（例如正在播放指向动作时禁止全身转身）")]
+    public bool lockTurning = false;
     
     private Animator animator;
+    private bool isTurning = false;
 
     void Start()
     {
         animator = GetComponent<Animator>();
-        if (Target != null) lastTargetPos = Target.position;
     }
 
     void Update()
     {
+        // 1. 如果正在播放指向动作或被锁定，立刻中止身体转身并退出
+        if (lockTurning)
+        {
+            if (isTurning)
+            {
+                isTurning = false;
+                if (animator != null) animator.SetBool("IsTurning", false);
+            }
+            return;
+        }
+
+        // --- 身体跟随旋转与倒脚动画逻辑 ---
         if (Target != null)
         {
-            float distanceMoved = Vector3.Distance(Target.position, lastTargetPos);
-            bool isPlayerMoving = distanceMoved > 0.005f; 
-            lastTargetPos = Target.position;
-
-            if (isPlayerMoving)
-            {
-                playerIdleTimer = 0f; 
-                isRotatingBody = false; 
-            }
-            else
-            {
-                playerIdleTimer += Time.deltaTime; 
-            }
-
+            // 1. 获取目标在水平面上的方向
             Vector3 dirToTarget = Target.position - transform.position;
             dirToTarget.y = 0f; 
-            if (dirToTarget != Vector3.zero) dirToTarget.Normalize();
+            if (dirToTarget.sqrMagnitude < 0.0001f) return;
+            dirToTarget.Normalize();
 
+            // 2. 计算 NPC 正前方与目标的夹角
             float currentAngle = Vector3.Angle(transform.forward, dirToTarget);
 
-            // --- 修复 1：触发新一轮转身时，必须将上一次残留的“物理惯性”彻底清零 ---
-            if (playerIdleTimer >= turnDelay && currentAngle > maxAngle && !isRotatingBody)
+            // 3. 回滞状态机：超过 maxAngle 开始转身，一旦开始必须转到小于 stopAngle（正对目标）才停下
+            if (!isTurning && currentAngle > maxAngle)
             {
-                isRotatingBody = true;
-                turnSmoothVelocity = 0f; // 核心修复点：清空动能，确保每次转身都像第一次一样平滑起步
+                isTurning = true;
             }
-            
-            if (currentAngle < 1.5f)
+            else if (isTurning && currentAngle <= stopAngle)
             {
-                isRotatingBody = false;
+                isTurning = false;
             }
 
-            if (isRotatingBody)
+            if (isTurning)
             {
-                float targetAngle = Mathf.Atan2(dirToTarget.x, dirToTarget.z) * Mathf.Rad2Deg;
-                float currentYAngle = transform.eulerAngles.y;
-                
-                float smoothedAngle = Mathf.SmoothDampAngle(currentYAngle, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
-                transform.rotation = Quaternion.Euler(0f, smoothedAngle, 0f);
+                Quaternion targetRotation = Quaternion.LookRotation(dirToTarget);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
                 
                 if (animator != null) animator.SetBool("IsTurning", true);
             }
@@ -76,18 +76,21 @@ public class NPCIKController : MonoBehaviour
         }
     }
 
+    // 必须在这个特定的回调函数中处理 IK
     void OnAnimatorIK(int layerIndex)
     {
         if (animator != null && Target != null)
         {
-            // --- 修复 2：如果身体正在被代码物理旋转，暂时关闭 IK 对脊椎的二次扭转，防止变成“麻花” ---
-            float bodyIKWeight = isRotatingBody ? 0f : 0.2f;
+            // 设置看目标的权重参数：(全局权重, 身体跟随权重, 头部权重, 眼睛权重, 关节限制权重)
+            // 身体 0.2，头部 0.8，让动作显得自然，不会像猫头鹰一样脖子扭断
+            animator.SetLookAtWeight(lookWeight, 0.2f, 0.8f, 1.0f, 0.5f);
             
-            animator.SetLookAtWeight(lookWeight, bodyIKWeight, 0.8f, 1.0f, 0.5f);
+            // 强制让头部看向目标的绝对空间坐标
             animator.SetLookAtPosition(Target.position);
         }
         else
         {
+            // 如果没有目标，权重归零，恢复普通的站立动画状态
             if (animator != null) animator.SetLookAtWeight(0);
         }
     }
