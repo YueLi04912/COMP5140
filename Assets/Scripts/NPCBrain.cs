@@ -170,7 +170,7 @@ JSON必须包含以下五个字段，缺一不可：
 
         if (subtitleText != null)
         {
-            subtitleText.text = "AI导购思考中..."; 
+            subtitleText.text = "Sales Man is thinking..."; 
         } 
 
         OnPlayerSpeak(userInput);
@@ -220,7 +220,7 @@ JSON必须包含以下五个字段，缺一不可：
             }
             else
             {
-                if (subtitleText != null) subtitleText.text = "网络连接失败，请稍后再试。";
+                if (subtitleText != null) subtitleText.text = "Error: AI brain crashed!";
                 Debug.LogError("大脑宕机: " + request.error);
                 dialogueHistory.RemoveAt(dialogueHistory.Count - 1);
             }
