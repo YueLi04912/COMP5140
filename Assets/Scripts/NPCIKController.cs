@@ -16,7 +16,7 @@ public class NPCIKController : MonoBehaviour
     [Tooltip("身体每秒旋转角速度（度/秒）")]
     public float turnSpeed = 75f;
 
-    [Tooltip("外部锁定转身（例如正在播放指向动作时禁止全身转身）")]
+    [Tooltip("外部锁定转身（例如正在播放指向动作、或者寻路移动中禁止原地倒脚）")]
     public bool lockTurning = false;
     
     private Animator animator;
@@ -29,7 +29,7 @@ public class NPCIKController : MonoBehaviour
 
     void Update()
     {
-        // 1. 如果正在播放指向动作或被锁定，立刻中止身体转身并退出
+        // 1. 如果被外部锁定（如指车中、寻路移动中），立刻中止原地倒脚并退出
         if (lockTurning)
         {
             if (isTurning)
