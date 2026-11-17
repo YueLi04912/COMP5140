@@ -1445,7 +1445,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   apiKey: 056daab9b6c6449ca1ba1e9b75290291.r3JmfqFYuxEpQGzp
-  modelName: glm-4.5-air
+  modelName: glm-5.3-flash
   maxMemoryRounds: 3
   agent: {fileID: 230073624}
   ikController: {fileID: 230073621}
