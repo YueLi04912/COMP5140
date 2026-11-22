@@ -201,7 +201,7 @@ JSON必须包含以下五个字段，缺一不可：
         };
         string requestJson = JsonUtility.ToJson(requestBody);
 
-        Debug.Log($"<color=#55FF55><b>[发给AI的原始请求]</b></color>\n{requestJson}");
+        Debug.Log($"<color=#55FF55><b>[The original request to AI]</b></color>\n{requestJson}");
 
         using (UnityWebRequest request = new UnityWebRequest(endpoint, "POST"))
         {
@@ -216,13 +216,13 @@ JSON必须包含以下五个字段，缺一不可：
             if (request.result == UnityWebRequest.Result.Success)
             {
                 string rawResponse = request.downloadHandler.text;
-                Debug.Log($"<color=#55FFFF><b>[AI返回的原始数据]</b></color>\n{rawResponse}");
+                Debug.Log($"<color=#55FFFF><b>[The original data returned by AI]</b></color>\n{rawResponse}");
                 ParseAndExecute(rawResponse);
             }
             else
             {
                 if (subtitleText != null) subtitleText.text = "Error: AI brain crashed!";
-                Debug.LogError("大脑宕机: " + request.error);
+                Debug.LogError("AI brain crashed: " + request.error);
                 dialogueHistory.RemoveAt(dialogueHistory.Count - 1);
             }
         }
@@ -249,7 +249,7 @@ JSON必须包含以下五个字段，缺一不可：
             }
             else
             {
-                Debug.LogError("大模型未输出有效 JSON 大括号。原话：" + llmContent);
+                Debug.LogError("AI failed to output valid JSON，Original content.：" + llmContent);
                 return;
             }
 
@@ -283,13 +283,6 @@ JSON必须包含以下五个字段，缺一不可：
                             // 遍历该部件上的所有材质槽
                             foreach (Material mat in rend.materials)
                             {
-                                // 过滤非车漆材质（如玻璃、车窗、轮胎、轮毂），防止误染
-                                string matName = mat.name.ToLower();
-                                if (matName.Contains("glass") || matName.Contains("window") || matName.Contains("tire") || matName.Contains("wheel"))
-                                {
-                                    continue;
-                                }
-
                                 // 修改颜色 (兼容 URP 的 _BaseColor 和 Standard 的 _Color)
                                 if (mat.HasProperty("_BaseColor"))
                                     mat.SetColor("_BaseColor", newColor);
